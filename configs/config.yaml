@@ -1,0 +1,31 @@
+# Titanic Survival Prediction Configuration
+# 타이타닉 생존 예측 설정
+
+# Random seed for reproducibility / 재현성을 위한 랜덤 시드
+seed: 42
+
+# Test set size / 테스트 세트 크기
+test_size: 0.3
+
+# Numeric features for modeling / 모델링에 사용할 수치형 특성들
+numeric_features:
+  - age
+  - sibsp
+  - parch
+  - fare
+  - pclass
+
+# Categorical features for modeling / 모델링에 사용할 범주형 특성들
+categorical_features:
+  - sex
+  - embarked
+  - alone
+  - who
+  - adult_male
+
+# Model configuration / 모델 설정
+model:
+  name: RandomForestClassifier
+  params:
+    n_estimators: 200
+    max_depth: 5
