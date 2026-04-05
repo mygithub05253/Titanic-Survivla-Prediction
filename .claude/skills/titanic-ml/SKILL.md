@@ -12,10 +12,27 @@ description: "Titanic 생존 예측 ML 프로젝트 작업 가이드. 데이터 
 
 ## Session Start Checklist / 세션 시작 체크리스트
 
-1. `CLAUDE.md` 읽기 → 현재 프로젝트 상태 파악
+1. `CLAUDE.md` 읽기 → 현재 프로젝트 상태 및 Workflow Convention 파악
 2. `configs/config.yaml` 읽기 → 현재 설정 확인
 3. `outputs/` 디렉토리의 최신 submission.csv 확인
 4. Version History에서 현재 버전 및 F1 Score 확인
+5. **사용자와 Plan 모드 대화** → 이번 세션의 목표 합의 후 작업 시작
+
+## Workflow: Plan → Execute → Verify / 작업 흐름
+
+### 절대 규칙
+- **Plan 먼저**: 어떤 작업이든 사용자와 계획을 먼저 논의
+- **승인 후 실행**: 사용자가 OK한 후에만 코드 작성/실행
+- **결과 보고**: 매 실행 후 F1 Score 등 결과를 사용자에게 보고
+- **독단적 진행 금지**: 다음 단계로 넘어갈 때 반드시 사용자 확인
+
+### 활용 도구
+- **GSTACK**: 브라우저로 공모전 플랫폼 접근 (제출, 리더보드)
+- **data 스킬**: EDA, 시각화, 통계 분석, 대시보드 생성
+- **engineering 스킬**: GitHub, 코드 리뷰, 문서화
+- **docx 스킬**: 계획서/명세서/보고서 DOCX 생성
+- **xlsx 스킬**: CSV/Excel 처리 (submission.csv 포함)
+- **titanic-ml 스킬**: ML 코드 템플릿 및 안전 점검
 
 ## Mandatory Code Template / 필수 코드 템플릿
 
