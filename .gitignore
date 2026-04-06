@@ -141,3 +141,11 @@ models/*.pkl
 models/*.joblib
 outputs/submissions/
 .env.local
+
+# Node.js (DOCX 생성 도구)
+node_modules/
+package.json
+package-lock.json
+
+# Claude 로컬 설정
+.claude/settings.local.json
