@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titanic EDA Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --bg-primary: #f0f2f5;
+            --bg-card: #ffffff;
+            --bg-header: #1a1a2e;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-on-dark: #ffffff;
+            --color-1: #4C72B0;
+            --color-2: #DD8452;
+            --color-3: #55A868;
+            --color-4: #C44E52;
+            --color-5: #8172B3;
+            --color-6: #937860;
+            --positive: #28a745;
+            --negative: #dc3545;
+            --warning: #ffc107;
+            --gap: 16px;
+            --radius: 10px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+        .dashboard-container { max-width: 1400px; margin: 0 auto; padding: var(--gap); }
+        .dashboard-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: var(--text-on-dark);
+            padding: 24px 32px;
+            border-radius: var(--radius);
+            margin-bottom: var(--gap);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .dashboard-header h1 { font-size: 22px; font-weight: 700; }
+        .dashboard-header .subtitle { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+        .badge { display: inline-block; background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+        .kpi-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--color-1);
+        }
+        .kpi-card:nth-child(2) { border-left-color: var(--color-3); }
+        .kpi-card:nth-child(3) { border-left-color: var(--color-4); }
+        .kpi-card:nth-child(4) { border-left-color: var(--color-2); }
+        .kpi-card:nth-child(5) { border-left-color: var(--color-5); }
+        .kpi-label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .kpi-value { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+        .kpi-sub { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .chart-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--gap);
+            margin-bottom: var(--gap);
+        }
+        .chart-row-3 { grid-template-columns: repeat(3, 1fr); }
+        .chart-container {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .chart-container h3 { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+        .chart-container canvas { max-height: 280px; }
+        .section-title {
+            font-size: 16px; font-weight: 700; color: var(--text-primary);
+            margin: 24px 0 12px 0; padding-left: 12px;
+            border-left: 3px solid var(--color-1);
+        }
+        .table-section {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: var(--gap);
+            overflow-x: auto;
+        }
+        .table-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px 12px; border-bottom: 2px solid #dee2e6; color: var(--text-secondary); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover td { background: #f8f9fa; }
+        .severity-red { color: #dc3545; font-weight: 600; }
+        .severity-orange { color: #e65100; font-weight: 600; }
+        .severity-yellow { color: #f9a825; font-weight: 600; }
+        .severity-green { color: #28a745; font-weight: 600; }
+        .strategy-box {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: var(--gap);
+        }
+        .strategy-box h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+        .strategy-item { display: flex; align-items: start; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+        .strategy-item .num { background: var(--color-1); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+        .footer { text-align: center; color: var(--text-secondary); font-size: 12px; padding: 16px; }
+
+        @media (max-width: 1024px) {
+            .kpi-row { grid-template-columns: repeat(3, 1fr); }
+            .chart-row { grid-template-columns: 1fr; }
+            .chart-row-3 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media print {
+            body { background: white; }
+            .chart-container, .kpi-card { break-inside: avoid; box-shadow: none; border: 1px solid #dee2e6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div>
+                <h1>Titanic Survival Prediction - EDA Dashboard</h1>
+                <div class="subtitle">BDAI Competition | seaborn titanic dataset | 891 passengers</div>
+            </div>
+            <div>
+                <span class="badge">SEED = 42</span>
+                <span class="badge">Target: F1 0.76+</span>
+            </div>
+        </header>
+
+        <section class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Passengers</div>
+                <div class="kpi-value">891</div>
+                <div class="kpi-sub">15 columns</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Survival Rate</div>
+                <div class="kpi-value">38.4%</div>
+                <div class="kpi-sub">342 survived / 549 died</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Baseline F1</div>
+                <div class="kpi-value">0.7151</div>
+                <div class="kpi-sub">RandomForest (v0.1)</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Leaderboard 1st</div>
+                <div class="kpi-value">0.7594</div>
+                <div class="kpi-sub">Current top score</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Target F1</div>
+                <div class="kpi-value">0.76+</div>
+                <div class="kpi-sub">Beat leaderboard</div>
+            </div>
+        </section>
+
+        <div class="section-title">Survival Analysis</div>
+        <section class="chart-row chart-row-3">
+            <div class="chart-container">
+                <h3>Survival Rate by Sex</h3>
+                <canvas id="chart-sex"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Survival Rate by Pclass</h3>
+                <canvas id="chart-pclass"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Survival Rate by Who</h3>
+                <canvas id="chart-who"></canvas>
+            </div>
+        </section>
+
+        <div class="section-title">Feature Distributions</div>
+        <section class="chart-row">
+            <div class="chart-container">
+                <h3>Age Distribution (excl. NaN, n=714)</h3>
+                <canvas id="chart-age"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Log(Fare+1) Distribution</h3>
+                <canvas id="chart-fare"></canvas>
+            </div>
+        </section>
+
+        <div class="section-title">Correlations & Feature Importance</div>
+        <section class="chart-row">
+            <div class="chart-container">
+                <h3>Correlation with Survived</h3>
+                <canvas id="chart-corr"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Feature Importance (RandomForest, Top 10)</h3>
+                <canvas id="chart-fi"></canvas>
+            </div>
+        </section>
+
+        <div class="section-title">Missing Data & Outlier Summary</div>
+        <section class="chart-row">
+            <div class="table-section">
+                <h3>Missing Data Strategy</h3>
+                <table>
+                    <thead><tr><th>Variable</th><th>Missing</th><th>Missing %</th><th>Pattern</th><th>Strategy</th><th>Severity</th></tr></thead>
+                    <tbody>
+                        <tr><td>deck</td><td>688</td><td>77.2%</td><td>MAR</td><td>deck_known binary</td><td class="severity-red">Red</td></tr>
+                        <tr><td>age</td><td>177</td><td>19.9%</td><td>MAR</td><td>pclass+sex group median + dummy</td><td class="severity-orange">Orange</td></tr>
+                        <tr><td>embarked</td><td>2</td><td>0.2%</td><td>MCAR</td><td>Mode (S)</td><td class="severity-yellow">Yellow</td></tr>
+                        <tr><td>Other 12 cols</td><td>0</td><td>0.0%</td><td>-</td><td>N/A</td><td class="severity-green">Complete</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-section">
+                <h3>Outlier Summary (IQR Method)</h3>
+                <table>
+                    <thead><tr><th>Variable</th><th>Outliers</th><th>Rate</th><th>Strategy</th></tr></thead>
+                    <tbody>
+                        <tr><td>fare</td><td>116</td><td>13.0%</td><td>Log Transform (keep all)</td></tr>
+                        <tr><td>sibsp</td><td>18</td><td>2.0%</td><td>Keep (family signal)</td></tr>
+                        <tr><td>parch</td><td>6</td><td>0.7%</td><td>Keep (family signal)</td></tr>
+                        <tr><td>age</td><td>1</td><td>0.1%</td><td>Keep (max=80 reasonable)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="section-title">Feature Recommendation</div>
+        <section class="chart-row">
+            <div class="table-section">
+                <h3>Final Feature Recommendation Table</h3>
+                <table>
+                    <thead><tr><th>Feature</th><th>Type</th><th>Priority</th><th>Note</th></tr></thead>
+                    <tbody>
+                        <tr><td>sex_encoded</td><td>Original</td><td><strong>Essential</strong></td><td>Most powerful predictor</td></tr>
+                        <tr><td>pclass</td><td>Original</td><td><strong>Essential</strong></td><td>Strong survival signal</td></tr>
+                        <tr><td>log_fare</td><td>Transform</td><td><strong>Essential</strong></td><td>Log reduces skew (4.79 to ~0.4)</td></tr>
+                        <tr><td>age</td><td>Imputed</td><td><strong>Essential</strong></td><td>pclass+sex group median</td></tr>
+                        <tr><td>family_size</td><td>Derived</td><td>High</td><td>Optimal survival at 2-4</td></tr>
+                        <tr><td>who_encoded</td><td>Original</td><td>High</td><td>man/woman/child</td></tr>
+                        <tr><td>adult_male</td><td>Original</td><td>High</td><td>Adds value beyond sex</td></tr>
+                        <tr><td>deck_known</td><td>Derived</td><td>Medium</td><td>Binary from deck missing</td></tr>
+                        <tr><td>age_missing</td><td>Derived</td><td>Medium</td><td>Missing itself is informative</td></tr>
+                        <tr><td>embarked_encoded</td><td>Original</td><td>Medium</td><td>C > Q > S survival</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="strategy-box">
+                <h3>Modeling Strategy Recommendations</h3>
+                <div class="strategy-item"><div class="num">1</div><div><strong>Recall Improvement (Priority #1)</strong><br>Current Recall=0.61 is the bottleneck. Use class_weight='balanced' and threshold optimization.</div></div>
+                <div class="strategy-item"><div class="num">2</div><div><strong>Feature Engineering</strong><br>Add family_size, log_fare, deck_known, age_missing. Use pclass+sex group median for age imputation.</div></div>
+                <div class="strategy-item"><div class="num">3</div><div><strong>Model Tuning (Phase 2)</strong><br>Try GradientBoosting, XGBoost, LightGBM with GridSearchCV/RandomizedSearchCV.</div></div>
+                <div class="strategy-item"><div class="num">4</div><div><strong>Ensemble (Phase 3)</strong><br>VotingClassifier and StackingClassifier. Threshold optimization for F1 0.76+.</div></div>
+                <div class="strategy-item"><div class="num">5</div><div><strong>FN Analysis</strong><br>Missed survivors are mostly 3rd class males, solo travelers, low fare. Target these for Recall improvement.</div></div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            BDAI Titanic Survival Prediction | EDA Dashboard | Generated: 2026-04-06 | SEED=42
+        </footer>
+    </div>
+
+    <script>
+        const COLORS = ['#4C72B0','#DD8452','#55A868','#C44E52','#8172B3','#937860','#DA8BC3','#8C8C8C','#CCB974','#64B5CD'];
+
+        // Survival by Sex
+        new Chart(document.getElementById('chart-sex'), {
+            type: 'bar',
+            data: {
+                labels: ['Female', 'Male'],
+                datasets: [{
+                    label: 'Survival Rate',
+                    data: [0.742, 0.189],
+                    backgroundColor: ['#e91e63CC', '#2196f3CC'],
+                    borderColor: ['#e91e63', '#2196f3'],
+                    borderWidth: 1, borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => `${(ctx.parsed.y*100).toFixed(1)}% (n=${ctx.dataIndex===0?314:577})` } }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Survival by Pclass
+        new Chart(document.getElementById('chart-pclass'), {
+            type: 'bar',
+            data: {
+                labels: ['1st Class', '2nd Class', '3rd Class'],
+                datasets: [{
+                    label: 'Survival Rate',
+                    data: [0.630, 0.473, 0.242],
+                    backgroundColor: ['#55A868CC', '#DD8452CC', '#C44E52CC'],
+                    borderColor: ['#55A868', '#DD8452', '#C44E52'],
+                    borderWidth: 1, borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => { const ns=[216,184,491]; return `${(ctx.parsed.y*100).toFixed(1)}% (n=${ns[ctx.dataIndex]})`; } } }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Survival by Who
+        new Chart(document.getElementById('chart-who'), {
+            type: 'bar',
+            data: {
+                labels: ['Woman', 'Child', 'Man'],
+                datasets: [{
+                    label: 'Survival Rate',
+                    data: [0.757, 0.590, 0.164],
+                    backgroundColor: ['#e91e63CC', '#8172B3CC', '#2196f3CC'],
+                    borderColor: ['#e91e63', '#8172B3', '#2196f3'],
+                    borderWidth: 1, borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => { const ns=[271,83,537]; return `${(ctx.parsed.y*100).toFixed(1)}% (n=${ns[ctx.dataIndex]})`; } } }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 1, ticks: { callback: v => (v*100)+'%' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Age Distribution
+        new Chart(document.getElementById('chart-age'), {
+            type: 'bar',
+            data: {
+                labels: ['0-4','4-8','8-12','12-16','16-20','20-24','24-28','28-32','32-36','36-40','40-44','44-48','48-52','52-56','56-60','60-64','64-68','68-72','72-76','76-80'],
+                datasets: [{
+                    label: 'Count',
+                    data: [40,14,15,31,79,98,85,84,73,45,35,35,29,16,13,11,4,5,1,1],
+                    backgroundColor: '#4C72B0CC',
+                    borderColor: '#4C72B0',
+                    borderWidth: 1, borderRadius: 2
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false }, ticks: { maxRotation: 45 } }, y: { beginAtZero: true } }
+            }
+        });
+
+        // Log Fare Distribution
+        new Chart(document.getElementById('chart-fare'), {
+            type: 'bar',
+            data: {
+                labels: ['0.0','0.3','0.6','0.9','1.3','1.6','1.9','2.2','2.5','2.8','3.1','3.4','3.7','4.1','4.4','4.7','5.0','5.3','5.6','5.9'],
+                datasets: [{
+                    label: 'Count',
+                    data: [15,0,0,0,0,2,167,183,108,59,117,65,46,39,39,20,11,17,0,3],
+                    backgroundColor: '#8172B3CC',
+                    borderColor: '#8172B3',
+                    borderWidth: 1, borderRadius: 2
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false }, ticks: { maxRotation: 45 } }, y: { beginAtZero: true } }
+            }
+        });
+
+        // Correlation with survived
+        const corrFeatures = ['sex_male','pclass','alone','age','parch','sibsp','fare'];
+        const corrValues = [-0.543,-0.339,-0.203,-0.077,0.082,-0.035,0.257];
+        new Chart(document.getElementById('chart-corr'), {
+            type: 'bar',
+            data: {
+                labels: corrFeatures,
+                datasets: [{
+                    label: 'Correlation',
+                    data: corrValues,
+                    backgroundColor: corrValues.map(v => v < 0 ? '#C44E52CC' : '#55A868CC'),
+                    borderColor: corrValues.map(v => v < 0 ? '#C44E52' : '#55A868'),
+                    borderWidth: 1, borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => `r = ${ctx.parsed.x.toFixed(3)}` } }
+                },
+                scales: {
+                    x: { min: -0.7, max: 0.4 },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Feature Importance
+        const fiFeatures = ['sex_encoded','fare','age','log_fare','pclass','family_size','who_encoded','fare_per_person','adult_male','age_group'];
+        const fiValues = [0.220,0.140,0.130,0.120,0.080,0.060,0.050,0.050,0.040,0.030];
+        new Chart(document.getElementById('chart-fi'), {
+            type: 'bar',
+            data: {
+                labels: fiFeatures,
+                datasets: [{
+                    label: 'Importance',
+                    data: fiValues,
+                    backgroundColor: fiValues.map((v,i) => COLORS[i % COLORS.length] + 'CC'),
+                    borderColor: fiValues.map((v,i) => COLORS[i % COLORS.length]),
+                    borderWidth: 1, borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => `Importance: ${ctx.parsed.x.toFixed(3)}` } }
+                },
+                scales: {
+                    x: { beginAtZero: true },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
